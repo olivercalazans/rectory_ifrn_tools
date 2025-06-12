@@ -1,4 +1,4 @@
-# powershell -executionpolicy bypass .\main.ps1
+# powershell -executionpolicy bypass .\filter.ps1
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
@@ -24,13 +24,14 @@ if ($dialogue.ShowDialog() -ne "OK") {
 # Get data from file
 $CSVFile = $dialogue.FileName
 $lines   = Get-Content $CSVFile
-foreach ($linha in $lines) {
-    
-    if ($linha.Trim() -eq "") {
+$lines   = $lines[2..($lines.Count)]
+foreach ($line in $lines) {
+
+    if ($line.Trim() -eq "") {
         continue
     }
     
-    $email    = ($linha -split ",")[0].Trim()
+    $email    = ($line -split ",")[0].Trim()
     $filters += "(extensionAttribute5=$email)"
 }
 
@@ -46,34 +47,32 @@ for ($i = 0; $i -lt $filters.Count; $i += 500) {
 # Process the data and separate it
 foreach ($block in $blocks) {
     $queryResult = dsquery * "dc=ifrn,dc=local" -scope subtree -limit 600 -attr sAMAccountName extensionAttribute5 extensionAttribute2 -filter "(|$block)"
-    $queryResult = $queryResult[1..($queryResult.Count -1)]
+    $queryResult = $queryResult[1..($queryResult.Count)]
 
     foreach ($line in $queryResult) {
         $parts = $line -split '\s+', 4
 
         if ($parts.Count -ge 3) {
-            $id    = $parts[1].Trim()
-            $email = $parts[2].Trim()
             $type  = $parts[3].Trim()
-
+        
             if (-not $lenTypes.ContainsKey($type)) {
                 $lenTypes[$type] = 0
             }
-
+        
             $lenTypes[$type]++
             $total++
 
             if ($type -eq "Aluno") {
-                Write-Host $type $email
                 $data += [PSCustomObject]@{
-                    ID    = $id.Trim()
-                    Email = $email.Trim()
-                    Type  = $type.Trim()
+                    ID    = $parts[1].Trim()
+                    Email = $parts[2].Trim()
+                    Type  = $type
                 }
             }
         }
     }
 }
+
 
 
 # Create description
@@ -144,10 +143,10 @@ foreach ($item in $data) {
 
 
 # Add status bar
-$statusLabel = New-Object System.Windows.Forms.Label
-$statusLabel.Text = "Total records: $($total) = $($result)"
+$statusLabel          = New-Object System.Windows.Forms.Label
+$statusLabel.Text     = "Total records: $($total) = $($result)"
 $statusLabel.Location = New-Object System.Drawing.Point(20, 540)
-$statusLabel.Size = New-Object System.Drawing.Size(760, 20)
+$statusLabel.Size     = New-Object System.Drawing.Size(760, 20)
 
 
 # Add double-click event
