@@ -10,14 +10,18 @@ $dialogue.Title  = "Selecione um arquivo CSV"
 $filters         = @()
 $blocks          = @()
 $data            = @()
+$lenTypes        = @{}
+$total           = 0
 
 
+# Open a file selection window
 if ($dialogue.ShowDialog() -ne "OK") {
     Write-Host "Nenhum arquivo foi selecionado."
     Exit
 }
 
 
+# Get data from file
 $CSVFile = $dialogue.FileName
 $lines   = Get-Content $CSVFile
 foreach ($linha in $lines) {
@@ -31,6 +35,7 @@ foreach ($linha in $lines) {
 }
 
 
+#Divide into blocks of 500 or fewer
 for ($i = 0; $i -lt $filters.Count; $i += 500) {
     $currentBlock = $filters[$i..($i + 500 - 1)]
     $blockString  = $currentBlock -join ""
@@ -38,28 +43,47 @@ for ($i = 0; $i -lt $filters.Count; $i += 500) {
 }
 
 
+# Process the data and separate it
 foreach ($block in $blocks) {
     $queryResult = dsquery * "dc=ifrn,dc=local" -scope subtree -limit 600 -attr sAMAccountName extensionAttribute5 extensionAttribute2 -filter "(|$block)"
+    $queryResult = $queryResult[1..($queryResult.Count -1)]
 
     foreach ($line in $queryResult) {
         $parts = $line -split '\s+', 4
 
         if ($parts.Count -ge 3) {
-            $samAccount = $parts[1]
-            $extension5 = $parts[2]
-            $extension2 = $parts[3]
+            $id    = $parts[1].Trim()
+            $email = $parts[2].Trim()
+            $type  = $parts[3].Trim()
 
-            $data += [PSCustomObject]@{
-                ID    = $samAccount.Trim()
-                Email = $extension5.Trim()
-                Type  = $extension2.Trim()
+            if (-not $lenTypes.ContainsKey($type)) {
+                $lenTypes[$type] = 0
+            }
+
+            $lenTypes[$type]++
+            $total++
+
+            if ($type -eq "Aluno") {
+                Write-Host $type $email
+                $data += [PSCustomObject]@{
+                    ID    = $id.Trim()
+                    Email = $email.Trim()
+                    Type  = $type.Trim()
+                }
             }
         }
     }
 }
 
 
-$data = $data[1..($data.Count -1)]
+# Create description
+$result = ""
+
+foreach ($key in $lenTypes.Keys) {
+    $result += "$($key): $($lenTypes[$key]) | "
+}
+
+$result = $result.TrimEnd(' | ')
 
 
 # Create main form
@@ -121,7 +145,7 @@ foreach ($item in $data) {
 
 # Add status bar
 $statusLabel = New-Object System.Windows.Forms.Label
-$statusLabel.Text = "Total records: $($data.Count) | Double-click a row for details"
+$statusLabel.Text = "Total records: $($total) = $($result)"
 $statusLabel.Location = New-Object System.Drawing.Point(20, 540)
 $statusLabel.Size = New-Object System.Drawing.Size(760, 20)
 
