@@ -8,10 +8,11 @@ $dialogue        = New-Object System.Windows.Forms.OpenFileDialog
 $dialogue.Filter = "CSV Files (*.csv)|*.csv"
 $dialogue.Title  = "Selecione um arquivo CSV"
 $filters         = @()
-$blocks          = @()
+$emails          = @()
 $data            = @()
 $lenTypes        = @{}
 $total           = 0
+$lenRepeated     = 0
 
 
 # Open a file selection window
@@ -36,39 +37,42 @@ foreach ($line in $lines) {
 }
 
 
-#Divide into blocks of 500 or fewer
+# Divide into blocks of 500 or fewer and process
 for ($i = 0; $i -lt $filters.Count; $i += 500) {
     $currentBlock = $filters[$i..($i + 500 - 1)]
     $blockString  = $currentBlock -join ""
-    $blocks      += $blockString
-}
 
-
-# Process the data and separate it
-foreach ($block in $blocks) {
-    $queryResult = dsquery * "dc=ifrn,dc=local" -scope subtree -limit 600 -attr sAMAccountName extensionAttribute5 extensionAttribute2 -filter "(|$block)"
+    $queryResult = dsquery * "dc=ifrn,dc=local" -scope subtree -limit 600 -attr sAMAccountName extensionAttribute5 extensionAttribute2 -filter "(|$blockString)"
     $queryResult = $queryResult[1..($queryResult.Count)]
 
     foreach ($line in $queryResult) {
         $parts = $line -split '\s+', 4
 
         if ($parts.Count -ge 3) {
+            $email = $parts[2].Trim()
             $type  = $parts[3].Trim()
         
             if (-not $lenTypes.ContainsKey($type)) {
                 $lenTypes[$type] = 0
             }
-        
-            $lenTypes[$type]++
-            $total++
 
             if ($type -eq "Aluno") {
                 $data += [PSCustomObject]@{
                     ID    = $parts[1].Trim()
-                    Email = $parts[2].Trim()
+                    Email = $email
                     Type  = $type
                 }
             }
+
+            $lenTypes[$type]++
+
+            if ($emails -contains $email) {
+                $lenRepeated++
+                continue
+            }
+
+            $emails += $email
+            $total++
         }
     }
 }
@@ -144,7 +148,7 @@ foreach ($item in $data) {
 
 # Add status bar
 $statusLabel          = New-Object System.Windows.Forms.Label
-$statusLabel.Text     = "Total records: $($total) = $($result)"
+$statusLabel.Text     = "Total records: $($total) = $($result) | Repeated Emails: $($lenRepeated)"
 $statusLabel.Location = New-Object System.Drawing.Point(20, 540)
 $statusLabel.Size     = New-Object System.Drawing.Size(760, 20)
 
