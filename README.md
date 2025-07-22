@@ -6,13 +6,21 @@ The tools in this repository are designed to automate processes that would other
 🇧🇷 Português:
 As ferramentas deste repositório foram criadas para automatizar processos que levariam muito tempo se fossem feitos manualmente. O objetivo é simplificar tarefas repetitivas, aumentar a eficiência e reduzir a chance de erro humano.
 
+<br>
 
+<h2> contagem_dominios.ps1 </h2>
+  
+🇺🇸 The purpose of the code is to count how many times each domain part appears in a file and display only those that occur more than a user-defined minimum.<br><br>
+🇧🇷 O objetivo do código é contar quantas vezes cada parte de domínio aparece em um arquivo e exibir apenas as que aparecem mais do que um número mínimo informado pelo usuário.
+
+<br>
 
 <h2> filter1_alunos.ps1 </h2>
   
 🇺🇸 The file filter1_alunos.ps1 is a PowerShell script that searches for students within a list containing thousands of records. It helps quickly locate specific entries without manually scanning through the entire dataset.<br><br>
 🇧🇷 O arquivo filter1_alunos.ps1 é um script em PowerShell que procura por alunos em uma lista com milhares de registros. Ele ajuda a localizar rapidamente entradas específicas, sem a necessidade de examinar manualmente todo o conjunto de dados.
 
+<br>
 
 <h2> filter2_emailAluno.py </h2>
 🇺🇸 The file filter2_emailAluno.py is a Python script used to filter a CSV file and extract records where the status is "não atribuída" (not assigned). It streamlines the process of identifying unassigned entries. <br><br>
