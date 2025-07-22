@@ -1,9 +1,24 @@
+Add-Type -AssemblyName System.Windows.Forms
+
+$arquivoDialogo = New-Object System.Windows.Forms.OpenFileDialog
+$arquivoDialogo.Title = "Selecione o arquivo de dominios"
+$arquivoDialogo.Filter = "Arquivos de texto (*.txt)|*.txt|Todos os arquivos (*.*)|*.*"
+
+$confirmado = $arquivoDialogo.ShowDialog()
+
+if ($confirmado -ne [System.Windows.Forms.DialogResult]::OK) {
+    Write-Host "Nenhum arquivo selecionado. Encerrando..."
+    exit
+}
+
+$caminho_arquivo = $arquivoDialogo.FileName
+
 $aparicao_minima = Read-Host "Informe a quantidade minima de aparicoes"
 $aparicao_minima = [int]$aparicao_minima
 
 $dominios = @{}
 
-Get-Content "dominios.txt" | ForEach-Object {
+Get-Content $caminho_arquivo | ForEach-Object {
     $linha = $_
     $dom = $linha -split " - " | Select-Object -First 1
     $subdominios = $dom -split '\.'
@@ -16,10 +31,10 @@ Get-Content "dominios.txt" | ForEach-Object {
     }
 }
 
-# Ordena o dicionário por valor decrescente
+
 $lista_ordenada = $dominios.GetEnumerator() | Sort-Object Value -Descending
 
-# Encontra o tamanho da maior chave
+
 $len_maior_chave = ($dominios.Keys | ForEach-Object { $_.Length } | Measure-Object -Maximum).Maximum
 
 foreach ($item in $lista_ordenada) {
